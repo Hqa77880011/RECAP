@@ -1,0 +1,10 @@
+{
+  "seed": 0,
+  "cases": 100,
+  "tasks": 50,
+  "resources": 8,
+  "capacity": 2,
+  "failures": 4,
+  "delay": 5,
+  "overlap": 0.5
+}

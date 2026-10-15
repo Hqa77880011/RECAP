@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recap"
+version = "0.1.0"
+description = "RECAP implementation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26,<3", "scipy>=1.11,<2", "matplotlib>=3.8,<4"]
+
+[project.scripts]
+recap-report = "recap.common:report"
+recap = "recap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
