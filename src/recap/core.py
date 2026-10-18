@@ -31,19 +31,20 @@ class Ledger:
         self.order = 0
 
     def propose(self, delta, identity):
-        scope = set(delta)
-        edges = [c for c in self.constraints if members(c) & scope]
-        reads = scope | set().union(*(members(c) for c in edges))
-        return dict(
-            id=identity,
-            scope=sorted(scope),
-            reads=sorted(reads),
-            writes=sorted(delta),
-            versions={k: self.state[k]["version"] for k in reads},
-            delta=deepcopy(delta),
-            boundary=[c["id"] for c in edges if members(c) - scope],
-            constraints={c["id"]: c.get("version", 0) for c in edges},
-        )
+        with self.lock:
+            scope = set(delta)
+            edges = [c for c in self.constraints if members(c) & scope]
+            reads = scope | set().union(*(members(c) for c in edges))
+            return dict(
+                id=identity,
+                scope=sorted(scope),
+                reads=sorted(reads),
+                writes=sorted(delta),
+                versions={k: self.state[k]["version"] for k in reads},
+                delta=deepcopy(delta),
+                boundary=[c["id"] for c in edges if members(c) - scope],
+                constraints={c["id"]: c.get("version", 0) for c in edges},
+            )
 
     def commit(self, tx, method="recap"):
         with self.lock:
@@ -91,24 +92,25 @@ class Ledger:
             return True, "accepted"
 
     def repair(self, scope, delay, identity):
-        delta = {
-            k: dict(
-                self.state[k],
-                start=self.state[k]["start"] + delay,
-                end=self.state[k]["end"] + delay,
-            )
-            for k in scope
-        }
-        candidate = deepcopy(self.state)
-        candidate.update(delta)
-        touched = [c for c in self.constraints if members(c) & set(scope)]
-        for _ in range(1000):
-            if all(satisfied(c, candidate) for c in touched):
-                return self.propose(delta, identity)
-            for k in delta:
-                delta[k]["start"] += 1
-                delta[k]["end"] += 1
+        with self.lock:
+            delta = {
+                k: dict(
+                    self.state[k],
+                    start=self.state[k]["start"] + delay,
+                    end=self.state[k]["end"] + delay,
+                )
+                for k in scope
+            }
+            candidate = deepcopy(self.state)
             candidate.update(delta)
-        raise ValueError(
-            "Local repair could not satisfy constraints in 1000 time slots"
-        )
+            touched = [c for c in self.constraints if members(c) & set(scope)]
+            for _ in range(1000):
+                if all(satisfied(c, candidate) for c in touched):
+                    return self.propose(delta, identity)
+                for k in delta:
+                    delta[k]["start"] += 1
+                    delta[k]["end"] += 1
+                candidate.update(delta)
+            raise ValueError(
+                "Local repair could not satisfy constraints in 1000 time slots"
+            )
