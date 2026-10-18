@@ -1,0 +1,11 @@
+{
+  "seed": 17,
+  "cases": 40,
+  "tasks": 32,
+  "resources": 8,
+  "capacity": 2,
+  "failures": 4,
+  "delay": 5,
+  "overlap": 0.5,
+  "retirement_fraction": 0.25
+}

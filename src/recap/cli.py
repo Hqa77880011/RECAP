@@ -44,6 +44,7 @@ def prepare(a, c):
                     state=state,
                     constraints=edges,
                     failures=failed,
+                    retirements=failed[:int(np.ceil(len(failed) * c.get("retirement_fraction", 0)))],
                     source="generated_commitment_graph",
                 )
             )
@@ -66,6 +67,13 @@ def run(a, c, method):
             if rng.random() < c["overlap"] and len(failures) > 1:
                 scope = list(dict.fromkeys([k, failures[(j + 1) % len(failures)]]))
             proposals.append(ledger.repair(scope, c["delay"], str(j)))
+        retirement_events = []
+        for k in case.get("retirements", []):
+            tx = ledger.propose({k: dict(ledger.state[k], active=False)}, "retire:" + k)
+            ok, reason = ledger.commit(tx)
+            if not ok:
+                raise ValueError("Registered retirement was rejected: " + reason)
+            retirement_events.append(dict(transaction=tx, accepted=ok, reason=reason))
         events = []
         accepted = bad = resurrections = 0
         for tx in proposals:
@@ -114,7 +122,8 @@ def run(a, c, method):
                 rejected=len(events) - accepted,
             )
         )
-        traces.append(dict(id=case["id"], events=events, final_state=ledger.state))
+        traces.append(dict(id=case["id"], retirements=retirement_events,
+                           events=events, final_state=ledger.state))
     output = Path(a.output) / method
     table(output / "cases.csv", rows)
     save(output / "traces.json", traces)

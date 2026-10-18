@@ -39,7 +39,20 @@ The bundled inner solver shifts affected intervals until touched constraints are
 
 `configs/default.json` controls generated task/resource counts, capacity, failures, repair delay, scope overlap, case count and seed. Supply case graphs with additional shared-resource or handoff edges for coupling sweeps. The overlap knob controls the probability of sharing a neighboring failed task in a repair scope. Delay here is the interval shift; application-level proposal-delivery delays can be represented by generating transactions at different snapshots through the ledger API.
 
-Per-method `cases.csv` and `metrics.json` report inconsistent accepted commits, stale resurrection, unaffected-task churn, measured median recovery latency, normalized serialized transaction traffic and allocation utility. Traffic divides actual proposal/outcome bytes by full-state broadcast bytes per proposal. Utility is retained base utility discounted by delay as `1/(1+delay/100)`; replace the inner solver's utility model when importing an application-specific objective. `traces.json` stores proposals, rejection reasons, commit order and final states. Comparison CSV/JSON and PNG/SVG charts summarize only these generated measurements. Include explicit retirement deltas through `Ledger.propose` when studying stale resurrection; generated interval-shift workloads do not create retirement incidents.
+Per-method `cases.csv` and `metrics.json` report inconsistent accepted commits, stale resurrection, unaffected-task churn, measured median recovery latency, normalized serialized transaction traffic and allocation utility. Traffic divides actual proposal/outcome bytes by full-state broadcast bytes per proposal. Utility is retained base utility discounted by delay as `1/(1+delay/100)`; replace the inner solver's utility model when importing an application-specific objective. `traces.json` stores proposals, rejection reasons, commit order and final states. Comparison CSV/JSON and PNG/SVG charts summarize only these generated measurements. Set `retirement_fraction` to include explicit post-snapshot retirement events in generated cases. The registered compact configuration uses 0.25. Imported cases may supply `retirements` as commitment IDs. Those retirements commit before the previously generated recovery proposals and are saved separately in traces; the default configuration without this field retains interval-only incidents.
+
+## Registered compact reproduction setting
+
+Thirty-two resource-coupled interval tasks with four failures and explicit retirement of one failed task after stale proposals are generated. Retirement and recovery events are separately retained in traces.
+
+Run from the repository root after installation. The following commands use the registered setting; they are provided for execution and have not been run as part of the source review.
+
+```bash
+recap prepare --config configs/reproduce.json --data data/reproduce
+recap compare --config configs/reproduce.json --data data/reproduce --output runs/reproduce
+```
+
+This setting needs no external dataset or pretrained weights. Generated inputs and declared fault/shift laws define the finite task; reported quantities retain that provenance.
 
 ## Multiple seeds
 
